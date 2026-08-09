@@ -228,11 +228,18 @@ function onSearch(v) {
 
 // ---- NEW COMPLAINT ----
 function openNewModal() {
-  ["f-name", "f-phone", "f-city", "f-model", "f-serial", "f-complaint", "f-remarks"].forEach(i => {
+  ["f-name", "f-phone", "f-city", "f-model", "f-serial", "f-complaint", "f-remarks", "f-charger-model", "f-charger-serial"].forEach(i => {
     document.getElementById(i).value = "";
   });
   document.getElementById("f-cat").value = "";
+  document.getElementById("f-charger-chk").checked = false;
+  document.getElementById("charger-fields").style.display = "none";
   openModal("new-modal");
+}
+
+function toggleCharger() {
+  const on = document.getElementById("f-charger-chk").checked;
+  document.getElementById("charger-fields").style.display = on ? "flex" : "none";
 }
 
 async function submitNew() {
@@ -262,6 +269,9 @@ async function submitNew() {
         batteryCategory: cat,
         batteryModel: model,
         serialNo: document.getElementById("f-serial").value.trim(),
+        chargerReplace: document.getElementById("f-charger-chk").checked ? "Yes" : "No",
+        chargerModel: document.getElementById("f-charger-model").value.trim(),
+        chargerSerial: document.getElementById("f-charger-serial").value.trim(),
         complaint,
         remarks: document.getElementById("f-remarks").value.trim()
       })
@@ -410,7 +420,8 @@ function fmtDate(val) {
 
 const FIXED_KEYS = [
   "ID", "Date", "Status", "Customer Name", "Phone", "City",
-  "Battery Category", "Battery Model", "Serial No", "Complaint",
+  "Battery Category", "Battery Model", "Serial No",
+  "Charger Replace", "Charger Model", "Charger Serial", "Complaint",
   "Dispatched By", "Dispatch Date", "Pickup Mode",
   "Expected Pickup Date", "Pickup Confirmed Date", "Received Location", "Remarks", "_row"
 ];
@@ -441,6 +452,9 @@ function openDetail(id) {
     `<div class="di"><label>Category</label><span>${row["Battery Category"] || "—"}</span></div>` +
     `<div class="di"><label>Model</label><span>${row["Battery Model"] || "—"}</span></div>` +
     `<div class="di"><label>Serial No</label><span>${row["Serial No"] || "—"}</span></div>` +
+    `<div class="di"><label>Charger Replace</label><span>${row["Charger Replace"] || "No"}</span></div>` +
+    `<div class="di"><label>Charger Model</label><span>${row["Charger Model"] || "—"}</span></div>` +
+    `<div class="di"><label>Charger Serial</label><span>${row["Charger Serial"] || "—"}</span></div>` +
     `</div></div>` +
     `<div class="detail-section"><h3>Complaint</h3>` +
     `<p style="font-size:13px;line-height:1.6">${row["Complaint"] || "—"}</p></div>` +
