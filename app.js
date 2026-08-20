@@ -3,8 +3,8 @@ const API_URL = "https://script.google.com/macros/s/AKfycbxygG0R2tWwYOs3O-9wAXUo
 // Only 3 roles have PINs — Admin is handled separately via admin.html
 const PINS = {
   "Service Executive": "1111",
-  "Repair Executive": "2222",
-  "Production Executive": "3333"
+  "Repair Executive": "2222"
+  
 };
 
 let pendingRole = null;
