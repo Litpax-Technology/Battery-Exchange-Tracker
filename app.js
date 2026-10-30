@@ -1,4 +1,4 @@
-const API_URL = "https://script.google.com/macros/s/AKfycbw4wmc1JdXPh9-Rbdg_a1-vQoB_yg7a5aaVtSjdExdEQjf_DWXAFIH1_3iRC_bjcxFLrQ/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbwolukinRvTvm6ryI2o7xEvPOpHuxq9PjmoOIsF4OVt2MBxC78theyKEOR1B--DdUu8_w/exec";
 
 // Only 3 roles have PINs — Admin is handled separately via admin.html
 const PINS = {
