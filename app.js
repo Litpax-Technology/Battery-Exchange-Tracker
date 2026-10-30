@@ -177,27 +177,27 @@ function getActions(row) {
   // SERVICE EXECUTIVE
   if (currentUser === "Service Executive" || currentUser === "Admin") {
     if (s === "Dispatched by Repair" || s === "Dispatched by Production") {
-      btns += ` <button class="action-btn ab-arrange" onclick='openUpdate("${id}","Pickup Arranged")'>Arrange Pickup</button>`;
+      btns += ` <button class="action-btn ab-arrange" onclick='openUpdate(${rowNo},"Pickup Arranged")'>Arrange Pickup</button>`;
     }
     if (s === "Pickup Arranged") {
-      btns += ` <button class="action-btn ab-confirm" onclick='openUpdate("${id}","Received")'>Mark Received</button>`;
+      btns += ` <button class="action-btn ab-confirm" onclick='openUpdate(${rowNo},"Received")'>Mark Received</button>`;
     }
   }
 
   // REPAIR EXECUTIVE
   if (currentUser === "Repair Executive" || currentUser === "Admin") {
     if (s === "Open") {
-      btns += ` <button class="action-btn ab-dispatch" onclick='openUpdate("${id}","Dispatched by Repair")'>Dispatch</button>`;
-      btns += ` <button class="action-btn ab-forward" onclick='openUpdate("${id}","Forwarded to Production")'>Stock Nahi →</button>`;
+      btns += ` <button class="action-btn ab-dispatch" onclick='openUpdate(${rowNo},"Dispatched by Repair")'>Dispatch</button>`;
+      btns += ` <button class="action-btn ab-forward" onclick='openUpdate(${rowNo},"Forwarded to Production")'>Stock Nahi →</button>`;
     }
     if (s === "Received") {
-      btns += ` <button class="action-btn ab-repair" onclick='openUpdate("${id}","Under Repair")'>Start Repair</button>`;
+      btns += ` <button class="action-btn ab-repair" onclick='openUpdate(${rowNo},"Under Repair")'>Start Repair</button>`;
     }
     if (s === "Under Repair") {
       if (dispBy === "Repair Executive") {
-        btns += ` <button class="action-btn ab-received" onclick='openUpdate("${id}","Closed")'>Repair Done → Close</button>`;
+        btns += ` <button class="action-btn ab-received" onclick='openUpdate(${rowNo},"Closed")'>Repair Done → Close</button>`;
       } else {
-        btns += ` <button class="action-btn ab-sendprod" onclick='openUpdate("${id}","Sent to Production")'>Repair Done → Production</button>`;
+        btns += ` <button class="action-btn ab-sendprod" onclick='openUpdate(${rowNo},"Sent to Production")'>Repair Done → Production</button>`;
       }
     }
   }
@@ -205,10 +205,10 @@ function getActions(row) {
   // PRODUCTION EXECUTIVE
   if (currentUser === "Production Executive" || currentUser === "Admin") {
     if (s === "Forwarded to Production") {
-      btns += ` <button class="action-btn ab-prodispatch" onclick='openUpdate("${id}","Dispatched by Production")'>Dispatch</button>`;
+      btns += ` <button class="action-btn ab-prodispatch" onclick='openUpdate(${rowNo},"Dispatched by Production")'>Dispatch</button>`;
     }
     if (s === "Sent to Production") {
-      btns += ` <button class="action-btn ab-received" onclick='openUpdate("${id}","Closed")'>Mark Closed</button>`;
+      btns += ` <button class="action-btn ab-received" onclick='openUpdate(${rowNo},"Closed")'>Mark Closed</button>`;
     }
   }
 
