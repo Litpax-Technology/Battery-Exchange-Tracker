@@ -296,10 +296,10 @@ async function submitNew() {
 
 // ---- UPDATE STATUS ----
 function openUpdate(rowNo, newStatus) {
-  const row = allData.find(r => r["_row"] === rowNo);
-  if (!row) return;
+  const row = allData.find(r => Number(r["_row"]) === Number(rowNo));
+  if (!row) { showToast("Row nahi mili, page refresh karo", "error"); return; }
   const id = row["ID"];
-  pendingUpdate = { id, newStatus, row: rowNo };
+  pendingUpdate = { id, newStatus, row: row["_row"] };
 
   const titles = {
     "Dispatched by Repair": "Mark Dispatched (Repair)",
