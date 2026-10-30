@@ -1,4 +1,4 @@
-const API_URL = "https://script.google.com/macros/s/AKfycbwolukinRvTvm6ryI2o7xEvPOpHuxq9PjmoOIsF4OVt2MBxC78theyKEOR1B--DdUu8_w/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycby36lIIXjk_dk8KjzSBVZq6DtnueScRbTyABwVhRkNzgL0vSlKJCP6mcKu-jyVM7oqHYA/exec";
 
 // Only 3 roles have PINs — Admin is handled separately via admin.html
 const PINS = {
@@ -170,6 +170,7 @@ function getStatusBadge(s) {
 function getActions(row) {
   const s = row["Status"];
   const id = row["ID"];
+  const rowNo = row["_row"];
   const dispBy = row["Dispatched By"] || "";
   let btns = `<button class="action-btn ab-view" onclick='openDetail("${id}")'>View</button>`;
 
@@ -294,10 +295,11 @@ async function submitNew() {
 }
 
 // ---- UPDATE STATUS ----
-function openUpdate(id, newStatus) {
-  const row = allData.find(r => r["ID"] === id);
+function openUpdate(rowNo, newStatus) {
+  const row = allData.find(r => r["_row"] === rowNo);
   if (!row) return;
-  pendingUpdate = { id, newStatus };
+  const id = row["ID"];
+  pendingUpdate = { id, newStatus, row: rowNo };
 
   const titles = {
     "Dispatched by Repair": "Mark Dispatched (Repair)",
@@ -369,6 +371,7 @@ async function confirmUpdate() {
   const payload = {
     action: "updateStatus",
     id: pendingUpdate.id,
+    row: pendingUpdate.row,
     newStatus: pendingUpdate.newStatus
   };
 
