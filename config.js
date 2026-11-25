@@ -1,4 +1,4 @@
-const API_URL = "https://script.google.com/macros/s/AKfycby36lIIXjk_dk8KjzSBVZq6DtnueScRbTyABwVhRkNzgL0vSlKJCP6mcKu-jyVM7oqHYA/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbz6hJ5RslGHZrF-8ufjcjPDZuhxOOGHyNjiBKZ1DNxQubaTV5vlYLVtmLYqljGjVEtZ/exec";
 
 // Challan print header. Address/phones ERP ke CHALLAN_HEADER se exact copy kar lena
 const CHALLAN_HEADER = {
