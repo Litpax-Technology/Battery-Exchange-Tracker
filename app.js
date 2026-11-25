@@ -1,5 +1,3 @@
-const API_URL = "https://script.google.com/macros/s/AKfycby36lIIXjk_dk8KjzSBVZq6DtnueScRbTyABwVhRkNzgL0vSlKJCP6mcKu-jyVM7oqHYA/exec";
-
 // Only 3 roles have PINs — Admin is handled separately via admin.html
 const PINS = {
   "Service Executive": "1111",
@@ -229,7 +227,7 @@ function onSearch(v) {
 
 // ---- NEW COMPLAINT ----
 function openNewModal() {
-  ["f-name", "f-phone", "f-city", "f-model", "f-serial", "f-complaint", "f-remarks", "f-charger-model", "f-charger-serial"].forEach(i => {
+  ["f-name", "f-phone", "f-city", "f-model", "f-serial", "f-complaint", "f-remarks", "f-charger-model", "f-charger-serial", "f-address"].forEach(i => {
     document.getElementById(i).value = "";
   });
   document.getElementById("f-cat").value = "";
@@ -274,6 +272,7 @@ async function submitNew() {
         chargerModel: document.getElementById("f-charger-model").value.trim(),
         chargerSerial: document.getElementById("f-charger-serial").value.trim(),
         complaint,
+        address: document.getElementById("f-address").value.trim(),
         remarks: document.getElementById("f-remarks").value.trim()
       })
     });
@@ -345,6 +344,10 @@ function openUpdate(rowNo, newStatus) {
     `;
   }
 
+    if (newStatus === "Dispatched by Repair" || newStatus === "Dispatched by Production") {
+    fields = challanFields(row);
+  }
+
   if (newStatus === "Under Repair" || newStatus === "Sent to Production" || newStatus === "Received from Repair" || newStatus === "Closed") {
     fields = `<p style="font-size:13px;color:var(--muted);margin-bottom:12px">Confirm karo yeh step complete ho gaya hai.</p>`;
   }
@@ -385,6 +388,14 @@ async function confirmUpdate() {
     payload.expectedDate = document.getElementById("u-expdate")?.value || "";
   }
 
+    const isDispatch = pendingUpdate.newStatus === "Dispatched by Repair" || pendingUpdate.newStatus === "Dispatched by Production";
+  if (isDispatch && document.getElementById("c-make")?.checked) {
+    const c = collectChallan();
+    if (!c) return;
+    payload.challan = c;
+    payload.address = c.address;
+  }
+
   payload.remarks = document.getElementById("u-remarks")?.value || "";
 
   const confirmBtn = document.getElementById("u-confirm");
@@ -397,6 +408,7 @@ async function confirmUpdate() {
     if (json.success) {
       closeModal("update-modal");
       showToast("Status update ho gaya!", "success");
+      if (json.challan) printHtml(buildChallanPrint(json.challan));
       await loadData();
       await loadStats();
     } else {
@@ -426,7 +438,7 @@ const FIXED_KEYS = [
   "Battery Category", "Battery Model", "Serial No",
   "Charger Replace", "Charger Model", "Charger Serial", "Complaint",
   "Dispatched By", "Dispatch Date", "Pickup Mode",
-  "Expected Pickup Date", "Pickup Confirmed Date", "Received Location", "Remarks", "_row"
+  "Expected Pickup Date", "Pickup Confirmed Date", "Received Location", "Remarks", "Address", "Challan No", "_row"
 ];
 
 // ---- DETAIL VIEW ----
@@ -442,6 +454,10 @@ function openDetail(id) {
       extraKeys.map(k => `<div class="di"><label>${k}</label><span>${fmtDate(row[k]) || "—"}</span></div>`).join("") +
       `</div></div>`;
   }
+
+    const challanHtml = row["Challan No"]
+    ? `<div class="detail-section"><h3>Delivery Challan</h3><p style="font-size:13px"><strong>${esc(row["Challan No"])}</strong> <button class="action-btn ab-view" onclick='reprintChallan("${esc(row["Challan No"])}")'>Reprint</button></p></div>`
+    : "";
 
   document.getElementById("d-body").innerHTML =
     `<div class="detail-grid">` +
@@ -469,10 +485,139 @@ function openDetail(id) {
     `<div class="di"><label>Received Date</label><span>${fmtDate(row["Pickup Confirmed Date"])}</span></div>` +
     `<div class="di"><label>Received Location</label><span>${row["Received Location"] || "—"}</span></div>` +
     `</div></div>` +
+       `<div class="detail-section"><h3>Delivery Address</h3><p style="font-size:13px">${esc(row["Address"]) || "—"}</p></div>` +
+    challanHtml +
     extraHtml +
     (row["Remarks"] ? `<div class="detail-section"><h3>Remarks</h3><p style="font-size:13px">${row["Remarks"]}</p></div>` : "");
 
   openModal("detail-modal");
+}
+
+// ---- DELIVERY CHALLAN ----
+function esc(v) {
+  return String(v == null ? "" : v).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+function challanFields(row) {
+  const items = [{ p: "Battery " + (row["Battery Model"] || ""), s: "", q: 1, a: 0 }];
+  if (row["Charger Replace"] === "Yes") items.push({ p: "Charger " + (row["Charger Model"] || ""), s: "", q: 1, a: 0 });
+  return `
+    <div class="form-group" style="margin-bottom:12px">
+      <label style="display:flex;align-items:center;cursor:pointer">
+        <input type="checkbox" id="c-make" checked style="width:auto;margin-right:8px"
+          onchange="document.getElementById('c-box').style.display=this.checked?'block':'none'"/>
+        Delivery Challan banao
+      </label>
+    </div>
+    <div id="c-box">
+      <div class="form-group" style="margin-bottom:12px">
+        <label>Delivery Address *</label>
+        <textarea id="c-address" placeholder="Ship-to address">${esc(row["Address"] || "")}</textarea>
+      </div>
+      <p style="font-size:11px;color:var(--muted);margin-bottom:6px">Particulars · New serial · Qty · Amount</p>
+      <div id="c-items">${items.map(challanItemRow).join("")}</div>
+      <button type="button" class="btn-cancel" style="margin-bottom:12px" onclick="addChallanItem()">+ Add item</button>
+    </div>`;
+}
+
+function challanItemRow(it) {
+  return `<div class="c-item" style="display:grid;grid-template-columns:2fr 1.3fr .6fr .8fr auto;gap:6px;margin-bottom:6px">
+    <input class="c-part" placeholder="Particulars" value="${esc(it.p)}"/>
+    <input class="c-serial" placeholder="New serial no" value="${esc(it.s)}"/>
+    <input class="c-qty" type="number" min="1" value="${it.q}"/>
+    <input class="c-amt" type="number" min="0" value="${it.a}"/>
+    <button type="button" class="modal-close" onclick="this.parentNode.remove()">✕</button>
+  </div>`;
+}
+
+function addChallanItem() {
+  document.getElementById("c-items").insertAdjacentHTML("beforeend", challanItemRow({ p: "", s: "", q: 1, a: 0 }));
+}
+
+function collectChallan() {
+  const address = document.getElementById("c-address").value.trim();
+  if (!address) { showToast("Delivery address bharo", "error"); return null; }
+  const items = [];
+  document.querySelectorAll("#c-items .c-item").forEach(el => {
+    const p = el.querySelector(".c-part").value.trim();
+    const s = el.querySelector(".c-serial").value.trim();
+    const q = Number(el.querySelector(".c-qty").value);
+    const a = Number(el.querySelector(".c-amt").value) || 0;
+    if (p && q > 0) items.push({ particulars: s ? `${p} (Sr. ${s})` : p, qty: q, amount: a });
+  });
+  if (!items.length) { showToast("Kam se kam ek item bharo", "error"); return null; }
+  return { address, items };
+}
+
+async function reprintChallan(dcNo) {
+  try {
+    const res = await fetch(`${API_URL}?action=getChallans`);
+    const json = await res.json();
+    const c = (json.data || []).find(x => x.dcNo === dcNo);
+    if (!c) { showToast("Challan nahi mili", "error"); return; }
+    printHtml(buildChallanPrint(c));
+  } catch (e) {
+    showToast("Network error", "error");
+  }
+}
+
+function printHtml(html) {
+  const f = document.createElement("iframe");
+  f.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0";
+  document.body.appendChild(f);
+  const d = f.contentWindow.document;
+  d.open(); d.write(html); d.close();
+  setTimeout(() => {
+    f.contentWindow.focus();
+    f.contentWindow.print();
+    setTimeout(() => f.remove(), 60000);
+  }, 300);
+}
+
+function buildChallanPrint(c) {
+  const H = CHALLAN_HEADER;
+  const rows = c.items.map((it, i) => `
+    <tr>
+      <td style="text-align:center">${i + 1}</td>
+      <td>${esc(it.particulars)}</td>
+      <td style="text-align:center">${esc(it.qty)}</td>
+      <td style="text-align:right">${Number(it.amount || 0).toFixed(2)}</td>
+    </tr>`).join("");
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${esc(c.dcNo)}</title>
+  <style>
+    body{font-family:Arial,sans-serif;font-size:13px;margin:0;padding:20px;color:#000}
+    .box{border:1.5px solid #000;padding:14px}
+    .hd{text-align:center;border-bottom:1.5px solid #000;padding-bottom:8px;margin-bottom:10px}
+    .hd h1{margin:4px 0;font-size:20px}
+    .row{display:flex;justify-content:space-between;margin-bottom:8px}
+    table{width:100%;border-collapse:collapse;margin:10px 0}
+    th,td{border:1px solid #000;padding:6px 8px}
+    th{background:#eee}
+    .note{margin-top:10px;font-weight:bold}
+    .sign{display:flex;justify-content:space-between;margin-top:60px}
+  </style></head><body><div class="box">
+    <div class="hd">
+      <div>GSTIN: ${esc(H.gstin)}</div>
+      <h1>${esc(H.name)}</h1>
+      <div>${esc(H.address)}</div>
+      <div>Ph: ${esc(H.phones)}</div>
+      <div style="margin-top:6px;font-weight:bold;font-size:15px">DELIVERY CHALLAN</div>
+    </div>
+    <div class="row"><div><b>Challan No:</b> ${esc(c.dcNo)}</div><div><b>Date:</b> ${esc(c.date)}</div></div>
+    <div class="row"><div><b>Ref:</b> ${esc(c.betId)}</div></div>
+    <div><b>Name &amp; Address:</b><br>
+      ${esc(c.customerName)}${c.phone ? " (" + esc(c.phone) + ")" : ""}<br>
+      ${esc(c.address)}${c.city ? ", " + esc(c.city) : ""}
+    </div>
+    <table>
+      <thead><tr><th style="width:40px">#</th><th>Particulars</th><th style="width:60px">Qty</th><th style="width:100px">Amount</th></tr></thead>
+      <tbody>${rows}
+        <tr><td colspan="3" style="text-align:right"><b>Total</b></td><td style="text-align:right"><b>${Number(c.total || 0).toFixed(2)}</b></td></tr>
+      </tbody>
+    </table>
+    <div class="note">Only for Warranty not for Sale</div>
+    <div class="sign"><div>Customer Signature</div><div>Manager / Prop.</div></div>
+  </div></body></html>`;
 }
 
 // ---- MODAL HELPERS ----
